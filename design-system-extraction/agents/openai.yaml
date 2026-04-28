@@ -1,7 +1,7 @@
 interface:
   display_name: "Design System Extraction | 设计系统提炼"
-  short_description: "Bilingual extraction of design systems and specs"
-  default_prompt: "Use $design-system-extraction to reverse-engineer a reusable design system, design tokens, component specs, page templates, and standardization guidance from these Figma files, screens, or component libraries."
+  short_description: "HTML extraction from Figma, images, code, PDFs, and tokens"
+  default_prompt: "Use $design-system-extraction to classify these design sources, choose quick audit, full spec, or frontend handoff mode, and generate a standalone HTML design-system report with tokens, component specs, CSS variables, Tailwind theme, and Design Tokens JSON when applicable."
 
 policy:
   allow_implicit_invocation: true

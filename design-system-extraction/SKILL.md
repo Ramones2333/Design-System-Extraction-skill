@@ -2,8 +2,8 @@
 name: design-system-extraction
 license: Apache-2.0
 description: |
-  Use this skill when a user provides design pages, Figma pages or frames, UI component libraries, high-fidelity mockups, page-plus-component sets, or incomplete design specs and asks you to extract, reverse-engineer, synthesize, document, or standardize a reusable design system, visual language, design tokens, component specifications, page templates, interaction rules, implementation-ready guidelines, or a structured design-spec document from them. Trigger on both English and Chinese requests such as "extract the design system", "reverse-engineer the UI system", "derive tokens and component rules", or "turn these screens into a design spec."
-  中文触发：当用户提供设计稿、Figma 页面、组件库、高保真视觉稿、页面加组件稿、或残缺待完善设计规范，并希望提炼、反推、整理、标准化或文档化设计系统、视觉语言、Design Token、组件规范、页面模板、交互规范、前端可落地设计规范时使用。中英文请求都应触发。
+  Use this skill when a user provides design sources in one or more formats, including Figma files/pages/frames, screenshots or image mockups, component-library source code, Storybook/design-system code, CSS/Tailwind/theme files, PDF or doc-based specifications, exported tokens, or mixed design materials, and asks you to extract, reverse-engineer, synthesize, document, standardize, or generate a reusable design system. The deliverable may be a quick audit, a full design-system spec, or a frontend handoff with CSS variables, Tailwind theme, and Design Tokens JSON. Trigger on both English and Chinese requests such as "extract the design system", "reverse-engineer the UI system", "derive tokens and component rules", "generate a frontend-ready design system", or "turn these files into an HTML design spec."
+  中文触发：当用户提供 Figma 文件/页面/Frame、截图/图片稿、组件库源码、Storybook 或设计系统代码、CSS/Tailwind/theme 文件、PDF/文档规范、导出的 token、或多种混合设计素材，并希望提炼、反推、整理、标准化、生成或文档化可复用设计系统、视觉语言、Design Token、组件规范、页面模板、交互规范、前端可落地交付物时使用。支持 quick audit、full spec、frontend handoff 三种输出模式，并默认输出 HTML 形式的设计系统报告。中英文请求都应触发。
 metadata:
   short-description: Reverse-engineer a reusable design system from UI source materials
 ---
@@ -12,7 +12,7 @@ metadata:
 
 ## Core role
 
-You are a senior enterprise design-system designer, UI specification engineer, and frontend implementation partner. Your job is to extract the reusable rules behind the provided designs and turn them into structured, implementation-ready guidance.
+You are a senior enterprise design-system designer, UI specification engineer, and frontend implementation partner. Your job is to inspect the provided source materials, route each file type through the right evidence path, and generate a reusable design system as an HTML deliverable that designers and frontend engineers can use directly.
 
 ## Language mode
 
@@ -53,21 +53,47 @@ When practical, attach evidence references such as component names, frame names,
 
 ## Source priority
 
-Use sources in this order:
+Use sources in this order unless the user identifies a different source of truth:
 
-1. Component library, variables, color styles, text styles, and variants
-2. Reusable modules, master pages, and template-level layouts
-3. Final page designs or high-fidelity frames
-4. Partial specs, notes, or annotations
+1. Existing token files, theme code, CSS variables, Tailwind config, or design-token exports
+2. Component library source, Storybook examples, component APIs, Figma components, variables, styles, and variants
+3. Reusable modules, master pages, and template-level layouts
+4. Final page designs, high-fidelity frames, screenshots, or image mockups
+5. PDF/spec docs, notes, annotations, and partial requirements
 
 If both a component library and page designs are provided, extract the standard from the component library first, then use the page designs to validate real usage.
 
 ## Input handling
 
-- For Figma sources, inspect variables, styles, components, and variants before reading individual frames in detail.
-- For page-only or image-only sources, extract only visible rules. Exact token names, hidden states, and internal component logic remain `[待补充规范]` unless shown.
-- For mixed inputs, cross-check page usage against the component source before finalizing any rule.
+- First inventory every provided source and classify it by URL, extension, folder context, and visible content as: Figma, screenshot/image, component-library code, token/theme code, PDF/doc spec, exported token data, or mixed/unknown.
+- Assign an input quality level from L1 to L5 and constrain the output to what the evidence can support.
+- Select an output mode before drafting: `quick audit`, `full spec`, or `frontend handoff`. If the user does not specify one, default to `full spec`; use `frontend handoff` when implementation files or code-ready tokens are requested, and `quick audit` when the user asks for a short review or fast diagnosis.
+- For Figma sources, inspect variables, styles, components, variants, and reusable modules before reading individual frames in detail.
+- For screenshot/image sources, extract only visible rules. Hidden states, exact token names, and internal component logic remain `[待补充规范]` / `[Needs Specification]` unless evidenced elsewhere.
+- For component-library or frontend source code, inspect token/theme files, component APIs, variants, states, styling implementation, usage examples, and Storybook/docs when present. Treat code-defined tokens and component contracts as high-priority implementation evidence.
+- For PDF/doc specs, extract explicit token tables, component rules, state definitions, page templates, annotations, and screenshots. Mark conflicts between docs and current UI/code instead of silently merging them.
+- For mixed inputs, build a source-evidence matrix and resolve each design-system area using the strongest available source for that area.
 - Treat master pages and derived pages separately. Do not confuse page content changes with system-level rule changes.
+
+For detailed routing rules, output-mode selection, and HTML/frontend handoff scaffolds, read `references/input-routing-modes-html.md` when handling mixed file types, generating an HTML deliverable, or producing frontend handoff code.
+
+## Input quality levels
+
+Use this table to prevent overclaiming:
+
+| Level | Materials | Supported output |
+|---|---|---|
+| L1 | Single page screenshot | Visible visual patterns only; do not define a complete token system |
+| L2 | Multiple page screenshots | Layout patterns, repeated components, visual style, visible inconsistencies |
+| L3 | Figma pages plus multiple modules | Page templates and first-pass component specifications |
+| L4 | Figma component library plus variables and pages | Mostly complete design-system spec with token and component evidence |
+| L5 | Component library plus spec docs plus real pages | Implementation-ready design-system report and frontend handoff |
+
+- L1 should normally use `quick audit`.
+- L2 may use `quick audit` or a limited `full spec` with clear gaps.
+- L3 and L4 can use `full spec`.
+- L5 is the strongest fit for `frontend handoff`.
+- If the user requests a mode stronger than the input quality supports, still produce the requested HTML structure but mark unsupported sections as `[待补充规范]` / `[Needs Specification]`.
 
 ## Required workflow
 
@@ -75,6 +101,7 @@ Follow this sequence without skipping steps.
 
 ### 1. Global pattern scan
 
+- Inventory source files/materials, classify file types, state the input quality level, and state the selected output mode.
 - Read the full set of pages and components before writing the spec.
 - Identify cross-page common patterns rather than optimizing for single-page detail.
 - Distinguish master pages from derived pages.
@@ -95,24 +122,11 @@ Extract and normalize the visible visual language:
 
 Prefer token-like naming when a stable rule clearly exists. If names are not visible in the source, propose neutral names only under `[统一建议]`.
 
-### 3. Decompose standardized components
+### 3. Summarize reusable component patterns
 
-Identify all reusable components. For each component, document:
+Identify reusable component patterns as evidence, but do not output a standalone complete component manual unless the user explicitly asks for one. Summarize component findings only where they support tokens, layout templates, inconsistencies, gaps, or frontend handoff.
 
-- Component name
-- Classification: foundational component or business component
-- Purpose
-- Structure and slots
-- Variants
-- States: default, hover, active, focus, selected, disabled, error, loading, empty, expanded, collapsed, or any visible states
-- Size and spacing rules
-- Visual rules
-- Interaction rules, only if visible
-- `[已确认规律]`
-- `[待补充规范]`
-- `[统一建议]`, only when inconsistency exists
-
-At minimum, actively inspect the following families when present:
+Actively inspect these families when present:
 
 - Buttons
 - Inputs and textareas
@@ -127,7 +141,18 @@ At minimum, actively inspect the following families when present:
 - Data display modules
 - Empty, success, warning, error, and helper states
 
-### 4. Abstract page templates
+### 4. Build visual specification boards
+
+Prefer visual explanation over long tables. When source material supports it, include:
+
+- Color swatches and semantic color chips
+- Typography scale samples showing display, section title, card title, body, and UI label levels
+- Spacing rhythm diagrams with bars or blocks for common gaps, padding, gutters, and container widths
+- Radius, border, and shadow cards that visually compare each elevation or surface style
+- Grid/container diagrams for page width, columns, gutters, and responsive behavior
+- If screenshot evidence is useful, embed small contextual previews or annotations inside the relevant visual-board or page-template section only. Do not create a standalone source-image or visual-annotation section.
+
+### 5. Abstract page templates
 
 Summarize the page system instead of narrating every screen:
 
@@ -138,17 +163,7 @@ Summarize the page system instead of narrating every screen:
 - Reusable layout patterns
 - Master-page and derived-page relationships
 
-### 5. Extract interaction and motion rules
-
-Summarize only what is visible or clearly implied by the supplied materials:
-
-- State transition logic
-- Feedback patterns
-- Selection and navigation behavior
-- Progressive disclosure rules
-- Motion rhythm or transition patterns
-
-If motion is not shown, mark it as `[待补充规范]` instead of fabricating timing or easing.
+Fold interaction and motion observations into page-template notes, inconsistency recommendations, frontend handoff, or specification gaps. Do not create a standalone interaction-behavior section.
 
 ### 6. Distill principles, gaps, and unification direction
 
@@ -159,17 +174,41 @@ If motion is not shown, mark it as `[待补充规范]` instead of fabricating ti
 
 ## Output contract
 
-Always use the exact section structure below in the active output language. If a section lacks evidence, write `暂无足够证据` for Chinese output or `Insufficient evidence at present` for English output, then state what source is still needed.
+Output an HTML deliverable by default.
+
+- When filesystem access is available, create or update a standalone `.html` file, normally named `design-system-extraction-report.html` unless the user provides a path or project naming convention.
+- When filesystem access is not available, output a complete standalone HTML document in the response.
+- The HTML must include embedded CSS, semantic headings, source/evidence labels, visual spec boards, original image previews or annotations when available, compact tables for tokens/source/gaps, and copyable code blocks for frontend handoff sections when applicable.
+- Use the card-based analysis report style defined in `references/input-routing-modes-html.md`: gradient page header, constrained report container, white section cards, compact comparison tables, evidence badges, insight callouts, and responsive two-column grids.
+- Do not rely on external CDNs or remote assets unless the user explicitly asks for them.
+
+Use the section structure below inside the HTML body according to the selected mode:
+
+- `quick audit`: include overview, source inventory, top confirmed patterns, top inconsistencies, highest-priority gaps, and next actions.
+- `full spec`: include the complete design-system sections below.
+- `frontend handoff`: include the complete spec plus engineering handoff sections for token tables, CSS custom properties, Tailwind theme, Design Tokens JSON, implementation notes, and adoption checklist.
+
+If a section lacks evidence, write `暂无足够证据` for Chinese output or `Insufficient evidence at present` for English output, then state what source is still needed.
 
 Read `references/output-examples.md` only when one of the following is true:
 
 - The user wants a sample deliverable or a reference format
 - You need a quick scaffold for section phrasing or bilingual structure
-- You want to sanity-check how component specs, inconsistency notes, or gap lists should read
+- You want to sanity-check how visual evidence, inconsistency notes, or gap lists should read
 
 Treat that file as a formatting reference only. Never reuse its example facts, values, or recommendations unless the user's source material independently supports them.
 
 ### Chinese heading set
+
+### 来源清单 & 输出模式
+
+Include:
+
+- Source inventory and file-type classification
+- Input quality level from L1 to L5
+- Read method and evidence strength for each source
+- Selected mode: `quick audit`, `full spec`, or `frontend handoff`
+- Known limitations before extraction
 
 ### 设计体系总览 & 风格调性
 
@@ -185,27 +224,9 @@ Include:
 For each category:
 
 - Summarize the observed rule set
+- Use visual boards first: color swatches, typography samples, spacing bars, radius/elevation cards, grid diagrams, and icon samples when evidence is available
 - Separate `[已确认规律]` and `[待补充规范]`
 - Add `[统一建议]` only when the source is inconsistent or incomplete
-
-### 完整组件规范手册（分基础组件 + 业务组件）
-
-For each component, use this template:
-
-```md
-#### 组件名称
-- 分类：
-- 用途：
-- 结构：
-- 变体：
-- 状态：
-- 尺寸与间距：
-- 视觉规则：
-- 交互规则：
-- [已确认规律]：
-- [待补充规范]：
-- [统一建议]：
-```
 
 ### 页面模板 & 布局规范
 
@@ -216,15 +237,6 @@ Include:
 - Structural zoning
 - Module combination rules
 - Master-page and derived-page mapping
-
-### 交互行为规范
-
-Include:
-
-- Visible behavior patterns
-- State switching logic
-- Feedback and disclosure rules
-- Motion guidance only when evidenced
 
 ### 核心设计原则
 
@@ -243,7 +255,29 @@ For each issue:
 
 List the missing states, missing tokens, missing responsive rules, missing interaction specs, or missing accessibility constraints that prevent a fully closed design system.
 
+### 前端交付资产（仅 frontend handoff 模式必需）
+
+Include:
+
+- Token inventory table
+- CSS custom properties
+- Tailwind theme extension
+- Design Tokens JSON
+- Implementation notes
+- Accessibility and state coverage checklist
+- Adoption checklist and migration risks
+
 ### English heading set
+
+### Source Inventory & Output Mode
+
+Include:
+
+- Source inventory and file-type classification
+- Input quality level from L1 to L5
+- Read method and evidence strength for each source
+- Selected mode: `quick audit`, `full spec`, or `frontend handoff`
+- Known limitations before extraction
 
 ### Design System Overview & Style Direction
 
@@ -259,27 +293,9 @@ Include:
 For each category:
 
 - Summarize the observed rule set
+- Use visual boards first: color swatches, typography samples, spacing bars, radius/elevation cards, grid diagrams, and icon samples when evidence is available
 - Separate `[Confirmed Pattern]` and `[Needs Specification]`
 - Add `[Standardization Recommendation]` only when the source is inconsistent or incomplete
-
-### Complete Component Specification Manual (Foundational + Business Components)
-
-For each component, use this template:
-
-```md
-#### Component Name
-- Classification:
-- Purpose:
-- Structure:
-- Variants:
-- States:
-- Size and spacing:
-- Visual rules:
-- Interaction rules:
-- [Confirmed Pattern]:
-- [Needs Specification]:
-- [Standardization Recommendation]:
-```
 
 ### Page Templates & Layout Rules
 
@@ -290,15 +306,6 @@ Include:
 - Structural zoning
 - Module combination rules
 - Master-page and derived-page mapping
-
-### Interaction Behavior Guidelines
-
-Include:
-
-- Visible behavior patterns
-- State switching logic
-- Feedback and disclosure rules
-- Motion guidance only when evidenced
 
 ### Core Design Principles
 
@@ -317,14 +324,30 @@ For each issue:
 
 List the missing states, missing tokens, missing responsive rules, missing interaction specs, or missing accessibility constraints that prevent a fully closed design system.
 
+### Frontend Handoff Assets (required only for frontend handoff mode)
+
+Include:
+
+- Token inventory table
+- CSS custom properties
+- Tailwind theme extension
+- Design Tokens JSON
+- Implementation notes
+- Accessibility and state coverage checklist
+- Adoption checklist and migration risks
+
 ## Writing rules
 
-- Write for Notion, Feishu, Yuque, Markdown docs, or internal design-spec docs that designers and frontend engineers can use directly.
+- Write for a standalone HTML report that designers and frontend engineers can use directly.
 - Keep the document structured and implementation-oriented.
 - Prefer normalized rules over page commentary.
 - When you need to infer, make the uncertainty explicit.
 - When you see inconsistency, do not ignore it. Call it out and recommend one standard.
 - If a single rule appears only once, do not upgrade it to a system rule unless the source explicitly defines it.
+- Avoid standalone sections named `完整组件规范手册` / `Complete Component Specification Manual` or `交互行为规范` / `Interaction Behavior Guidelines` unless the user explicitly requests them.
+- Do not create a standalone section named `原图证据 & 可视化标注`, `Source Images & Visual Annotations`, or similar. Put any screenshot preview or annotation inside the related visual-spec or page-template section.
+- Add generous vertical spacing between tables, insight callouts, code blocks, and the next subsection heading so headings never visually touch preceding content.
 - When the user asks in English, translate the narrative and section headings into fluent English instead of preserving the Chinese template.
 - When the user asks in Chinese, use the Chinese template by default.
 - Do not translate source evidence into a new canonical token name unless the source explicitly defines that name.
+- In `frontend handoff` mode, include code blocks for CSS custom properties, Tailwind theme extension, and Design Tokens JSON whenever source evidence supports them; otherwise include the section with explicit gaps.
